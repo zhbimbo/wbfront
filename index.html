@@ -4,35 +4,164 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Анализ отчетов Wildberries</title>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/lucide-react@0.363.0/dist/umd/lucide-react.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: linear-gradient(to bottom right, #dbeafe, #e0e7ff); }
-        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
-        .header { text-align: center; margin-bottom: 30px; }
-        .header h1 { font-size: 2em; color: #1e293b; }
-        .header p { font-size: 1.2em; color: #64748b; }
-        .card { background: white; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; margin-bottom: 20px; }
-        .card-content { padding: 30px; }
-        .dropzone { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; }
-        .dropzone:hover, .dropzone.active { border-color: #3b82f6; background-color: #eff6ff; }
-        .dropzone-icon { font-size: 3em; color: #94a3b8; margin-bottom: 15px; }
-        .dropzone-text { font-size: 1.2em; color: #64748b; margin-bottom: 10px; }
-        .dropzone-hint { font-size: 0.9em; color: #94a3b8; }
-        .file-info { margin-top: 20px; padding: 15px; background-color: #ecfdf5; border: 1px solid #10b981; border-radius: 8px; color: #065f46; }
-        .error { margin-top: 20px; padding: 15px; background-color: #fee2e2; border: 1px solid #ef4444; border-radius: 8px; color: #b91c1c; }
-        .btn { display: block; width: 100%; padding: 15px; background: linear-gradient(to right, #3b82f6, #4f46e5); color: white; border: none; border-radius: 8px; font-size: 1em; font-weight: bold; cursor: pointer; transition: all 0.3s; margin-top: 20px; }
-        .btn:disabled { background: #cbd5e1; cursor: not-allowed; }
-        .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
-        .result { margin-top: 20px; padding: 20px; background-color: #ecfdf5; border: 1px solid #10b981; border-radius: 8px; color: #065f46; display: flex; justify-content: space-between; align-items: center; }
-        .result-text h3 { margin: 0 0 5px 0; }
-        .result-text p { margin: 0; font-size: 0.9em; opacity: 0.9; }
-        .download-btn { padding: 10px 20px; background-color: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        .download-btn:hover { background-color: #059669; }
-        .footer { text-align: center; margin-top: 40px; color: #94a3b8; font-size: 0.9em; }
-        .api-url { font-size: 0.8em; color: #94a3b8; margin-top: 10px; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 0; 
+            padding: 0; 
+            background: linear-gradient(135deg, #f0f9ff 0%, #e6f7ff 100%);
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+        .header { 
+            text-align: center; 
+            margin-bottom: 30px; 
+            padding: 20px 0;
+        }
+        .header h1 { 
+            font-size: 2.5rem; 
+            color: #1e3a8a; 
+            margin-bottom: 10px;
+        }
+        .header p { 
+            font-size: 1.2rem; 
+            color: #4b5563; 
+        }
+        .card { 
+            background: white; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05); 
+            overflow: hidden; 
+            margin-bottom: 20px; 
+        }
+        .card-content { 
+            padding: 30px; 
+        }
+        .dropzone { 
+            border: 2px dashed #cbd5e1; 
+            border-radius: 12px; 
+            padding: 40px; 
+            text-align: center; 
+            cursor: pointer; 
+            transition: all 0.3s; 
+            background-color: #f8fafc;
+        }
+        .dropzone:hover, .dropzone.active { 
+            border-color: #3b82f6; 
+            background-color: #eff6ff; 
+        }
+        .dropzone-icon { 
+            font-size: 3rem; 
+            color: #94a3b8; 
+            margin-bottom: 15px; 
+        }
+        .dropzone-text { 
+            font-size: 1.2rem; 
+            color: #64748b; 
+            margin-bottom: 10px; 
+        }
+        .dropzone-hint { 
+            font-size: 0.9rem; 
+            color: #94a3b8; 
+        }
+        .file-info { 
+            margin-top: 20px; 
+            padding: 15px; 
+            background-color: #ecfdf5; 
+            border: 1px solid #10b981; 
+            border-radius: 8px; 
+            color: #065f46; 
+        }
+        .error { 
+            margin-top: 20px; 
+            padding: 15px; 
+            background-color: #fee2e2; 
+            border: 1px solid #ef4444; 
+            border-radius: 8px; 
+            color: #b91c1c; 
+        }
+        .btn { 
+            display: block; 
+            width: 100%; 
+            padding: 15px; 
+            background: linear-gradient(to right, #3b82f6, #4f46e5); 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 1rem; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: all 0.3s; 
+            margin-top: 20px; 
+        }
+        .btn:disabled { 
+            background: #cbd5e1; 
+            cursor: not-allowed; 
+        }
+        .btn:hover:not(:disabled) { 
+            transform: translateY(-2px); 
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); 
+        }
+        .result { 
+            margin-top: 20px; 
+            padding: 20px; 
+            background-color: #ecfdf5; 
+            border: 1px solid #10b981; 
+            border-radius: 8px; 
+            color: #065f46; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .result-text h3 { 
+            margin: 0 0 5px 0; 
+        }
+        .result-text p { 
+            margin: 0; 
+            font-size: 0.9rem; 
+            opacity: 0.9; 
+        }
+        .download-btn { 
+            padding: 10px 20px; 
+            background-color: #10b981; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: 600; 
+        }
+        .download-btn:hover { 
+            background-color: #059669; 
+        }
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .footer { 
+            text-align: center; 
+            margin-top: 40px; 
+            color: #94a3b8; 
+            font-size: 0.9rem; 
+        }
+        .api-url { 
+            font-size: 0.8rem; 
+            color: #94a3b8; 
+            margin-top: 10px; 
+        }
     </style>
 </head>
 <body>
@@ -52,7 +181,9 @@
                 </div>
                 <div id="fileInfo"></div>
                 <div id="error"></div>
-                <button id="processBtn" class="btn" disabled>Обработать отчет</button>
+                <button id="processBtn" class="btn" disabled>
+                    Обработать отчет
+                </button>
                 <div id="result"></div>
             </div>
         </div>
@@ -63,159 +194,160 @@
         </div>
     </div>
 
-    <script type="text/babel">
-        const { Upload, FileText, Download, AlertCircle, CheckCircle, Loader, FileSpreadsheet } = LucideReact;
-
-        class App extends React.Component {
-            constructor(props) {
-                super(props);
-                this.state = {
-                    file: null,
-                    isProcessing: false,
-                    uploadResult: null,
-                    error: '',
-                    API_BASE_URL: 'https://wb-report-api.onrender.com/'
-                };
-                this.dropzoneRef = React.createRef();
-                this.fileInputRef = React.createRef();
-            }
-
-            componentDidMount() {
-                document.getElementById('year').textContent = new Date().getFullYear();
-                document.getElementById('apiUrlDisplay').textContent = this.state.API_BASE_URL;
+    <script>
+        // ЗАМЕНИТЕ НА ВАШ URL БЭКЕНДА НА RENDER
+        const API_BASE_URL = 'https://wb-report-api.onrender.com/';
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('year').textContent = new Date().getFullYear();
+            document.getElementById('apiUrlDisplay').textContent = API_BASE_URL;
+            
+            const dropzone = document.getElementById('dropzone');
+            const fileInput = document.getElementById('fileInput');
+            const processBtn = document.getElementById('processBtn');
+            let selectedFile = null;
+            
+            // Обработчики для drag and drop
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropzone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropzone.classList.add('active');
+                }, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropzone.classList.remove('active');
+                }, false);
+            });
+            
+            // Обработка файла при перетаскивании
+            dropzone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
                 
-                const dropzone = document.getElementById('dropzone');
-                const fileInput = document.getElementById('fileInput');
-                
-                dropzone.addEventListener('click', () => fileInput.click());
-                fileInput.addEventListener('change', (e) => this.handleFileSelect(e, e.target.files[0]));
-                
-                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                    dropzone.addEventListener(eventName, this.preventDefaults, false);
-                });
-                
-                ['dragenter', 'dragover'].forEach(eventName => {
-                    dropzone.addEventListener(eventName, this.highlight, false);
-                });
-                
-                ['dragleave', 'drop'].forEach(eventName => {
-                    dropzone.addEventListener(eventName, this.unhighlight, false);
-                });
-                
-                dropzone.addEventListener('drop', (e) => this.handleDrop(e), false);
-            }
-
-            preventDefaults = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-
-            highlight = (e) => {
-                document.getElementById('dropzone').classList.add('active');
-            }
-
-            unhighlight = (e) => {
-                document.getElementById('dropzone').classList.remove('active');
-            }
-
-            handleFileSelect = (event, file) => {
+                if (files.length) {
+                    handleFile(files[0]);
+                }
+            }, false);
+            
+            // Обработка клика на dropzone
+            dropzone.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            // Обработка выбора файла через input
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+            
+            // Обработка файла
+            function handleFile(file) {
                 if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.csv'))) {
-                    this.setState({ file, error: '' });
+                    selectedFile = file;
                     document.getElementById('fileInfo').innerHTML = `
                         <div class="file-info">
                             <strong>Файл выбран:</strong> ${file.name}
                         </div>
                     `;
-                    document.getElementById('processBtn').disabled = false;
-                } else if (file) {
-                    this.setState({ error: 'Пожалуйста, выберите файл формата .xlsx или .csv', file: null });
-                    document.getElementById('fileInfo').innerHTML = '';
-                    document.getElementById('processBtn').disabled = true;
+                    processBtn.disabled = false;
+                    clearError();
+                } else {
+                    showError('Пожалуйста, выберите файл формата .xlsx или .csv');
+                    selectedFile = null;
+                    processBtn.disabled = true;
                 }
             }
-
-            handleDrop = (e) => {
-                const dt = e.dataTransfer;
-                const file = dt.files[0];
-                this.handleFileSelect(e, file);
+            
+            // Показ ошибки
+            function showError(message) {
+                document.getElementById('error').innerHTML = `
+                    <div class="error">
+                        ${message}
+                    </div>
+                `;
             }
-
-            handleSubmit = async () => {
-                const { file, API_BASE_URL } = this.state;
-                if (!file) {
-                    this.setState({ error: 'Пожалуйста, выберите файл для загрузки.' });
+            
+            // Очистка ошибки
+            function clearError() {
+                document.getElementById('error').innerHTML = '';
+            }
+            
+            // Обработка результата
+            function showResult(data) {
+                document.getElementById('result').innerHTML = `
+                    <div class="result">
+                        <div class="result-text">
+                            <h3>${data.message}</h3>
+                            <p>Файл готов к скачиванию</p>
+                        </div>
+                        <button class="download-btn" id="downloadBtn">
+                            Скачать
+                        </button>
+                    </div>
+                `;
+                
+                // Добавляем обработчик для кнопки скачивания
+                document.getElementById('downloadBtn').addEventListener('click', () => {
+                    downloadFile(`${API_BASE_URL}${data.download_url}`, data.result_filename);
+                });
+            }
+            
+            // Скачивание файла
+            function downloadFile(url, filename) {
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+            
+            // Обработка нажатия кнопки "Обработать отчет"
+            processBtn.addEventListener('click', async () => {
+                if (!selectedFile) {
+                    showError('Пожалуйста, выберите файл для загрузки.');
                     return;
                 }
-
-                this.setState({ isProcessing: true, error: '', uploadResult: null });
-                document.getElementById('processBtn').disabled = true;
-
+                
+                // Изменяем текст кнопки на "Обрабатываем..."
+                const originalText = processBtn.innerHTML;
+                processBtn.innerHTML = '<span class="spinner"></span> Обрабатываем...';
+                processBtn.disabled = true;
+                clearError();
+                
                 const formData = new FormData();
-                formData.append('file', file);
-
+                formData.append('file', selectedFile);
+                
                 try {
-                    console.log('Отправка файла на:', `${API_BASE_URL}/api/upload`);
                     const response = await fetch(`${API_BASE_URL}/api/upload`, {
                         method: 'POST',
                         body: formData,
                     });
-
-                    console.log('Статус ответа:', response.status);
-                    const data = await response.json();
-                    console.log('Данные ответа:', data);
-
+                    
                     if (response.ok) {
-                        this.setState({ uploadResult: data });
-                        document.getElementById('result').innerHTML = `
-                            <div class="result">
-                                <div class="result-text">
-                                    <h3>${data.message}</h3>
-                                    <p>Файл готов к скачиванию</p>
-                                </div>
-                                <button class="download-btn" onclick="window.downloadFile('${API_BASE_URL}${data.download_url}', '${data.result_filename}')">
-                                    Скачать
-                                </button>
-                            </div>
-                        `;
+                        const data = await response.json();
+                        showResult(data);
                     } else {
-                        this.setState({ error: data.error || 'Ошибка при обработке файла на сервере.' });
+                        const errorData = await response.json();
+                        showError(errorData.error || 'Ошибка при обработке файла на сервере.');
                     }
                 } catch (err) {
                     console.error('Ошибка сети:', err);
-                    this.setState({ error: 'Ошибка соединения с сервером обработки. Проверьте консоль браузера и убедитесь, что бэкенд доступен.' });
+                    showError('Ошибка соединения с сервером обработки.');
                 } finally {
-                    this.setState({ isProcessing: false });
-                    document.getElementById('processBtn').disabled = false;
+                    // Возвращаем оригинальный текст кнопки
+                    processBtn.innerHTML = originalText;
+                    processBtn.disabled = false;
                 }
-            }
-
-            render() {
-                const { isProcessing, error } = this.state;
-                
-                // Обновляем текст кнопки
-                document.getElementById('processBtn').innerHTML = isProcessing ? 
-                    '<span style="display: flex; align-items: center; justify-content: center;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-loader animate-spin" style="margin-right: 8px;"><line x1="12" x2="12" y1="2" y2="6"></line><line x1="12" x2="12" y1="18" y2="22"></line><line x1="4.93" x2="7.76" y1="4.93" y2="7.76"></line><line x1="16.24" x2="19.07" y1="16.24" y2="19.07"></line><line x1="2" x2="6" y1="12" y2="12"></line><line x1="18" x2="22" y1="12" y2="12"></line><line x1="4.93" x2="7.76" y1="19.07" y2="16.24"></line><line x1="16.24" x2="19.07" y1="7.76" y2="4.93"></line></svg>Обрабатываем...</span>' : 
-                    '<span style="display: flex; align-items: center; justify-content: center;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text" style="margin-right: 8px;"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" x2="8" y1="13" y2="13"></line><line x1="16" x2="8" y1="17" y2="17"></line><line x1="10" x2="8" y1="9" y2="9"></line></svg>Обработать отчет</span>';
-                
-                // Обработчик для кнопки скачивания
-                window.downloadFile = (url, filename) => {
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.setAttribute('download', filename);
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                };
-
-                // Обработчик для кнопки процесса
-                document.getElementById('processBtn').onclick = this.handleSubmit;
-
-                return null; // Так как мы используем DOM напрямую
-            }
-        }
-
-        const root = ReactDOM.createRoot(document.getElementById('dropzone').parentElement);
-        root.render(<App />);
+            });
+        });
     </script>
 </body>
 </html>
