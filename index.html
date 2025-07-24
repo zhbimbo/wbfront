@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анализ отчетов Wildberries</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide-react@0.363.0/dist/umd/lucide-react.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: linear-gradient(to bottom right, #dbeafe, #e0e7ff); }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { font-size: 2em; color: #1e293b; }
+        .header p { font-size: 1.2em; color: #64748b; }
+        .card { background: white; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; margin-bottom: 20px; }
+        .card-content { padding: 30px; }
+        .dropzone { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; }
+        .dropzone:hover, .dropzone.active { border-color: #3b82f6; background-color: #eff6ff; }
+        .dropzone-icon { font-size: 3em; color: #94a3b8; margin-bottom: 15px; }
+        .dropzone-text { font-size: 1.2em; color: #64748b; margin-bottom: 10px; }
+        .dropzone-hint { font-size: 0.9em; color: #94a3b8; }
+        .file-info { margin-top: 20px; padding: 15px; background-color: #ecfdf5; border: 1px solid #10b981; border-radius: 8px; color: #065f46; }
+        .error { margin-top: 20px; padding: 15px; background-color: #fee2e2; border: 1px solid #ef4444; border-radius: 8px; color: #b91c1c; }
+        .btn { display: block; width: 100%; padding: 15px; background: linear-gradient(to right, #3b82f6, #4f46e5); color: white; border: none; border-radius: 8px; font-size: 1em; font-weight: bold; cursor: pointer; transition: all 0.3s; margin-top: 20px; }
+        .btn:disabled { background: #cbd5e1; cursor: not-allowed; }
+        .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+        .result { margin-top: 20px; padding: 20px; background-color: #ecfdf5; border: 1px solid #10b981; border-radius: 8px; color: #065f46; display: flex; justify-content: space-between; align-items: center; }
+        .result-text h3 { margin: 0 0 5px 0; }
+        .result-text p { margin: 0; font-size: 0.9em; opacity: 0.9; }
+        .download-btn { padding: 10px 20px; background-color: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .download-btn:hover { background-color: #059669; }
+        .footer { text-align: center; margin-top: 40px; color: #94a3b8; font-size: 0.9em; }
+        .api-url { font-size: 0.8em; color: #94a3b8; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Анализ отчетов Wildberries</h1>
+            <p>Загрузите отчет и получите детализированный анализ</p>
+        </div>
+        
+        <div class="card">
+            <div class="card-content">
+                <div id="dropzone" class="dropzone">
+                    <div class="dropzone-icon">📁</div>
+                    <div class="dropzone-text">Перетащите файл сюда</div>
+                    <div class="dropzone-hint">или нажмите для выбора<br>Поддерживаемые форматы: .xlsx, .csv</div>
+                    <input type="file" id="fileInput" style="display: none;" accept=".xlsx,.csv">
+                </div>
+                <div id="fileInfo"></div>
+                <div id="error"></div>
+                <button id="processBtn" class="btn" disabled>Обработать отчет</button>
+                <div id="result"></div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>© <span id="year"></span> Анализ отчетов Wildberries</p>
+            <div class="api-url">API URL: <span id="apiUrlDisplay"></span></div>
+        </div>
+    </div>
+
+    <script type="text/babel">
+        const { Upload, FileText, Download, AlertCircle, CheckCircle, Loader, FileSpreadsheet } = LucideReact;
+
+        class App extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    file: null,
+                    isProcessing: false,
+                    uploadResult: null,
+                    error: '',
+                    API_BASE_URL: 'https://wb-report-api.onrender.com/'
+                };
+                this.dropzoneRef = React.createRef();
+                this.fileInputRef = React.createRef();
+            }
+
+            componentDidMount() {
+                document.getElementById('year').textContent = new Date().getFullYear();
+                document.getElementById('apiUrlDisplay').textContent = this.state.API_BASE_URL;
+                
+                const dropzone = document.getElementById('dropzone');
+                const fileInput = document.getElementById('fileInput');
+                
+                dropzone.addEventListener('click', () => fileInput.click());
+                fileInput.addEventListener('change', (e) => this.handleFileSelect(e, e.target.files[0]));
+                
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropzone.addEventListener(eventName, this.preventDefaults, false);
+                });
+                
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropzone.addEventListener(eventName, this.highlight, false);
+                });
+                
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropzone.addEventListener(eventName, this.unhighlight, false);
+                });
+                
+                dropzone.addEventListener('drop', (e) => this.handleDrop(e), false);
+            }
+
+            preventDefaults = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            highlight = (e) => {
+                document.getElementById('dropzone').classList.add('active');
+            }
+
+            unhighlight = (e) => {
+                document.getElementById('dropzone').classList.remove('active');
+            }
+
+            handleFileSelect = (event, file) => {
+                if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.csv'))) {
+                    this.setState({ file, error: '' });
+                    document.getElementById('fileInfo').innerHTML = `
+                        <div class="file-info">
+                            <strong>Файл выбран:</strong> ${file.name}
+                        </div>
+                    `;
+                    document.getElementById('processBtn').disabled = false;
+                } else if (file) {
+                    this.setState({ error: 'Пожалуйста, выберите файл формата .xlsx или .csv', file: null });
+                    document.getElementById('fileInfo').innerHTML = '';
+                    document.getElementById('processBtn').disabled = true;
+                }
+            }
+
+            handleDrop = (e) => {
+                const dt = e.dataTransfer;
+                const file = dt.files[0];
+                this.handleFileSelect(e, file);
+            }
+
+            handleSubmit = async () => {
+                const { file, API_BASE_URL } = this.state;
+                if (!file) {
+                    this.setState({ error: 'Пожалуйста, выберите файл для загрузки.' });
+                    return;
+                }
+
+                this.setState({ isProcessing: true, error: '', uploadResult: null });
+                document.getElementById('processBtn').disabled = true;
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    console.log('Отправка файла на:', `${API_BASE_URL}/api/upload`);
+                    const response = await fetch(`${API_BASE_URL}/api/upload`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    console.log('Статус ответа:', response.status);
+                    const data = await response.json();
+                    console.log('Данные ответа:', data);
+
+                    if (response.ok) {
+                        this.setState({ uploadResult: data });
+                        document.getElementById('result').innerHTML = `
+                            <div class="result">
+                                <div class="result-text">
+                                    <h3>${data.message}</h3>
+                                    <p>Файл готов к скачиванию</p>
+                                </div>
+                                <button class="download-btn" onclick="window.downloadFile('${API_BASE_URL}${data.download_url}', '${data.result_filename}')">
+                                    Скачать
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        this.setState({ error: data.error || 'Ошибка при обработке файла на сервере.' });
+                    }
+                } catch (err) {
+                    console.error('Ошибка сети:', err);
+                    this.setState({ error: 'Ошибка соединения с сервером обработки. Проверьте консоль браузера и убедитесь, что бэкенд доступен.' });
+                } finally {
+                    this.setState({ isProcessing: false });
+                    document.getElementById('processBtn').disabled = false;
+                }
+            }
+
+            render() {
+                const { isProcessing, error } = this.state;
+                
+                // Обновляем текст кнопки
+                document.getElementById('processBtn').innerHTML = isProcessing ? 
+                    '<span style="display: flex; align-items: center; justify-content: center;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-loader animate-spin" style="margin-right: 8px;"><line x1="12" x2="12" y1="2" y2="6"></line><line x1="12" x2="12" y1="18" y2="22"></line><line x1="4.93" x2="7.76" y1="4.93" y2="7.76"></line><line x1="16.24" x2="19.07" y1="16.24" y2="19.07"></line><line x1="2" x2="6" y1="12" y2="12"></line><line x1="18" x2="22" y1="12" y2="12"></line><line x1="4.93" x2="7.76" y1="19.07" y2="16.24"></line><line x1="16.24" x2="19.07" y1="7.76" y2="4.93"></line></svg>Обрабатываем...</span>' : 
+                    '<span style="display: flex; align-items: center; justify-content: center;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text" style="margin-right: 8px;"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" x2="8" y1="13" y2="13"></line><line x1="16" x2="8" y1="17" y2="17"></line><line x1="10" x2="8" y1="9" y2="9"></line></svg>Обработать отчет</span>';
+                
+                // Обработчик для кнопки скачивания
+                window.downloadFile = (url, filename) => {
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', filename);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                };
+
+                // Обработчик для кнопки процесса
+                document.getElementById('processBtn').onclick = this.handleSubmit;
+
+                return null; // Так как мы используем DOM напрямую
+            }
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('dropzone').parentElement);
+        root.render(<App />);
+    </script>
+</body>
+</html>
