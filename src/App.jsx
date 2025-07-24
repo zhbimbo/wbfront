@@ -8,7 +8,7 @@ function App() {
   const [error, setError] = useState('');
 
   // Замените на URL вашего бэкенда на Render
-  const API_BASE_URL = 'https://ваш-бэкенд-на-render.onrender.com';
+  const API_BASE_URL = 'https://wb-report-api.onrender.com/';
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
